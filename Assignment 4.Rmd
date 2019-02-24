@@ -1,0 +1,423 @@
+---
+title: "MATH 545 - Assignment 4"
+author: "Emir Sevinc 260682995"
+date: "November 29, 2018"
+output: pdf_document
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,warning=FALSE,message=FALSE}
+library(tidyverse)
+library(itsmr)
+library(forecast)
+library(tibbletime)
+library(tsbox)
+library(gridExtra)
+library(TTR)
+library(tidyquant)
+library(here)
+library(fpp2)
+library(tseries)
+```
+
+# 6.9)
+
+## a)
+First we take a look at our data:
+```{r, message=F, warning=F}
+
+beer_dat = dget("beer.Rput")
+autoplot(beer_dat)
+
+```
+
+And below is the shortened data with the last 12 entries removed, and logged as instructed:
+```{r, message=F, warning=F}
+dat_short = dget("BSHORT.Rput")
+dat_short_log <- log(dat_short)
+autoplot(dat_short_log)
+```
+
+
+
+We now take a look at the ACF and PACF
+```{r, message=F, warning=F}
+ggAcf(dat_short_log) + ggtitle("ACF")
+ggPacf(dat_short_log) + ggtitle("PACF")
+```
+The spikes at lags 12 and 24 suggest the usage of differencing, so we will set seasonal=TRUE.
+
+
+
+
+
+
+Below we select the most appropriate model:
+
+
+
+```{r, message=F, warning=F}
+auto_select_AIC = auto.arima(dat_short_log,stepwise=FALSE,seasonal=TRUE,ic="aic",trace=TRUE,approximation=FALSE)
+auto_select_AIC
+auto_select_BIC = auto.arima(dat_short_log,stepwise=FALSE,seasonal=TRUE,ic="bic",trace=TRUE,approximation=FALSE)
+auto_select_BIC
+auto_select_AICC = auto.arima(dat_short_log,stepwise=FALSE,seasonal=TRUE,ic="aicc",trace=TRUE,approximation=FALSE)
+auto_select_AICC
+
+checkresiduals(auto_select_AIC)
+
+```
+
+Thus the best model is a seasonal ARIMA model as shown.
+
+
+
+## b)
+
+The confidence intervals will be given by:
+
+
+
+```{r, message=F, warning=F}
+
+confint(auto_select_AIC, level=0.95)
+
+```
+
+
+
+## c)
+
+The ACF doesn't look too good in the sense that there is significant correlation still present; with many spikes outside the confidence bounds. Let's run some tests:
+
+
+
+
+
+```{r, message=F, warning=F}
+adf.test(residuals(auto_select_AIC))
+```
+
+The null hypothesis non-starionarity can be rejected for upto 99% confidence as we can see from the p value from the ADF test; and for KPSS:
+```{r, message=F, warning=F}
+kpss.test(residuals(auto_select_AIC))
+```
+Starionarity is null here, but it is still able to be rejected with high confidence as seen from the p value. The tests don't agree; and with the ACF graph as well, it is unlikely that the residual is stationary, thus it's not likely white noise.
+
+## d)
+
+```{r, message=F, warning=F}
+fcast <- forecast((auto_select_AIC), h=12)
+plot(fcast)
+
+
+```
+
+
+
+
+## e)
+Thus the predicted next 12 values and the corresponding 95% confidence bounds  can be seen from the following output:
+```{r, message=F, warning=F}
+summary(fcast)
+```
+Where "Point Forecast" corresponds to the predicted values, and "Lo 95" and "Hi 95" are the corresponding lower and upper bounds, respectively, for the 95% prediction bounds.
+
+## f)
+Below is a comparison of the (logged) actual values vs the forecasted values:
+```{r, message=F, warning=F}
+i<-1:12
+beer_dat_log <- log(beer_dat)
+vals <-(as.numeric(tail(beer_dat_log,12)))
+predicted<-(as.numeric(fcast$mean))
+cbind(vals,predicted)
+
+```
+Now we display the errors:
+```{r, message=F, warning=F}
+errors<-abs(vals-predicted)
+cbind(i,errors)
+
+```
+Let's see what the last (logged) value of the original series is:
+```{r, message=F, warning=F}
+last_value <- tail(beer_dat_log,1)
+last_value
+```
+4.997212 is indeed within the prediction bounds for the last value: [4.904673,5.189081].
+
+## 6.10)
+
+We shall now take the classical decomposition approach. Below we establish our objects and make sure they're indexed properly, and compute an initial trend with SMA 12:
+
+```{r, message=F, warning=F}
+
+dat_df = ts_df(dat_short_log) %>% rename(time = time,
+                                             value = value)
+dat_tbl = as_tbl_time(dat_df,index=time)
+
+trend_comp = ts_df(SMA(dat_short_log,n=12)) %>% rename(time=time,SMA_12=value)
+
+
+dat_tbl  =  full_join(dat_tbl,trend_comp) %>%
+                    mutate(SMA_resid=dat_short_log-SMA_12)
+
+
+
+```
+
+Now we display the initial trend:
+```{r, message=F, warning=F}
+ggplot(dat_tbl,aes(x=time,y=value)) + geom_line() + 
+  geom_line(aes(y=SMA_12),color="blue")
+```
+```{r, message=F, warning=F}
+ggplot(dat_tbl,aes(x=time,y=SMA_resid)) + geom_line()
+```
+As we can see the trend has fallen off. Now we will handle seasonality:
+
+
+```{r, message=F, warning=F}
+SMA_resid_ts = ts(dat_tbl%>% filter(!is.na(SMA_resid)) %>% pull(SMA_resid), 
+   start=c(1956,12),frequency=12)
+   
+season_comp = season(SMA_resid_ts,d=12)
+
+SMA_resid_tbl = ts_df(SMA_resid_ts) %>% rename(time=time,
+                                               SMA_resid=value) %>% 
+                  mutate(seasonal = season_comp) %>% as_tbl_time(index=time)
+
+dat_tbl = full_join(dat_tbl,SMA_resid_tbl)
+
+
+
+
+```
+
+```{r, message=F, warning=F}
+dat_tbl = dat_tbl %>% mutate(deseason=dat_short_log-seasonal)
+
+
+ggplot(dat_tbl,aes(x=time,y=dat_short_log)) + geom_line() + 
+  geom_line(aes(y=deseason),color="blue") 
+```
+Finally we recompute a quadriatic trend and and plot it together with the seasonal component:
+
+```{r, message=F, warning=F}
+
+deseason_ts = ts(dat_tbl %>% filter(!is.na(deseason)) %>% pull(deseason),
+                 start=c(1956,12),frequency=12)
+
+deseason_trend = ts_df(SMA(deseason_ts,n=2)) %>% rename(time=time,de_SMA_2 = value)
+
+dat_tbl = full_join(dat_tbl,deseason_trend)
+```
+
+
+
+```{r, message=F, warning=F}
+dat_tbl = dat_tbl %>% mutate(Final_resid=dat_short_log-de_SMA_2-seasonal)
+
+ggplot(dat_tbl,aes(x=time,y=dat_short_log)) +geom_line(alpha=0.1) + geom_line(aes(y=deseason),color="blue",alpha=0.5) + geom_line(aes(y=de_SMA_2),color="purple")
+```
+The final residuals post decomposition look like this:
+
+```{r, message=F, warning=F}
+t_s = ts(dat_tbl %>% pull(Final_resid))
+
+tsfinal = na.remove(t_s) 
+autoplot(tsfinal)
+ggAcf(tsfinal)
+
+```
+
+
+
+
+
+The new ACF is significantly less patterned than the initial ACF, but doesn't look stationary; there is significant correlation remaining.
+
+## a)
+
+Now we find the ARIMA model of best fit for the residuals:
+```{r, message=F, warning=F}
+auto_select_AIC2 = auto.arima(tsfinal ,stepwise=FALSE,seasonal=FALSE,ic="aic",trace=TRUE,approximation=FALSE)
+auto_select_AIC2
+auto_select_BIC2 = auto.arima(tsfinal,stepwise=FALSE,seasonal=FALSE,ic="bic",trace=TRUE,approximation=FALSE)
+auto_select_BIC2
+auto_select_AICC2 = auto.arima(tsfinal ,stepwise=FALSE,seasonal=FALSE,ic="aicc",trace=TRUE,approximation=FALSE)
+auto_select_AICC2
+
+checkresiduals(auto_select_AIC2)
+```
+
+
+
+
+Thus it would seem that an MA(5) model with non-zero mean fits best for the remaining residuals. It is worth noting that this is not the same model we got when we applied differencing instead.
+
+## b)
+
+The confience intervals will be given by:
+```{r, message=F, warning=F}
+
+confint(auto_select_AIC2, level=0.95)
+```
+
+
+
+## c)
+
+The ACF is more "noisy" but as there are significant correlation spikes present.
+
+```{r, message=F, warning=F}
+adf.test(residuals(auto_select_AIC2))
+```
+
+The null hypothesis non-starionarity can be rejected for upto 99% confidence as we can see from the p value from the ADF test; and for KPSS:
+
+
+
+
+```{r, message=F, warning=F}
+kpss.test(residuals(auto_select_AIC2))
+```
+Starionarity being null here, but it is still able to be rejected. The tests don't agree; and with the ACF graph as well, it is unlikely that the residual is stationary, thus it's not likely white noise.
+
+
+
+Now we forecast:
+
+## d)
+```{r, message=F, warning=F}
+
+fcast2 <- forecast(auto_select_AIC2, h=12)
+plot(fcast2)
+
+```
+
+## e)
+The point forecasts and the corresponding CI's (Lo 95, Hi 95) can be seen from the output :
+
+```{r, message=F, warning=F}
+summary(fcast2)
+
+```
+
+## f)
+
+
+For comparison, we need to look at the residuals of the original, unshortened data when we apply the same procedue of decomposition to it. We go through the same process as we did for the shortened data below:
+
+```{r, message=F, warning=F}
+
+dat_df2 = ts_df(beer_dat_log) %>% rename(time = time,
+                                             value = value)
+dat_tbl2 = as_tbl_time(dat_df2,index=time)
+
+trend_comp2 = ts_df(SMA(beer_dat_log,n=12)) %>% rename(time=time,SMA_12=value)
+
+
+dat_tbl2  =  full_join(dat_tbl2,trend_comp2) %>%
+                    mutate(SMA_resid2=beer_dat_log-SMA_12)
+
+
+
+```
+```{r, message=F, warning=F}
+SMA_resid_ts2 = ts(dat_tbl2%>% filter(!is.na(SMA_resid2)) %>% pull(SMA_resid2), 
+   start=c(1956,12),frequency=12)
+   
+season_comp2 = season(SMA_resid_ts2,d=12)
+
+SMA_resid_tbl2 = ts_df(SMA_resid_ts2) %>% rename(time=time,
+                                               SMA_resid2=value) %>% 
+                  mutate(seasonal2 = season_comp2) %>% as_tbl_time(index=time)
+
+dat_tbl2 = full_join(dat_tbl2,SMA_resid_tbl2)
+
+
+
+
+```
+
+```{r, message=F, warning=F}
+dat_tbl2 = dat_tbl2 %>% mutate(deseason2=beer_dat_log-seasonal2)
+
+```
+
+```{r, message=F, warning=F}
+
+deseason_ts2 = ts(dat_tbl2 %>% filter(!is.na(deseason2)) %>% pull(deseason2),
+                 start=c(1956,12),frequency=12)
+
+deseason_trend2 = ts_df(SMA(deseason_ts2,n=2)) %>% rename(time=time,de_SMA_2 = value)
+
+dat_tbl2 = full_join(dat_tbl2,deseason_trend2)
+```
+
+
+
+```{r, message=F, warning=F}
+dat_tbl2 = dat_tbl2 %>% mutate(Final_resid2=beer_dat_log-de_SMA_2-seasonal2)
+
+```
+
+```{r, message=F, warning=F}
+t_s2 = ts(dat_tbl2 %>% pull(Final_resid2))
+
+tsfinal2 = na.remove(t_s2) 
+
+```
+
+
+Thus the compared reidual values to the predicted vs original data is below:
+
+```{r, message=F, warning=F}
+
+
+vals2 <-(as.numeric(tail(tsfinal2,12)))
+predicted2<-(as.numeric(fcast2$mean))
+cbind(vals2,predicted2)
+
+```
+Now we display the forecast errors:
+```{r, message=F, warning=F}
+errors2<-abs(vals2-predicted2)
+cbind(i,errors2)
+
+```
+The value from the residue of the unshortened ts:
+```{r, message=F, warning=F}
+last_value2 <- tail(tsfinal2,1)
+last_value2
+```
+-0.01765639 is indeed within the corresponding bounds of [-0.09469514,0.09631131].
+
+Comparison of errors for the 2 methods:
+
+```{r, message=F, warning=F}
+cbind(errors,errors2)
+```
+
+Where "errors" corresponds to the forecast errors from model 1, and "errors2" from model 2.
+Let's see which one is higher on average:
+
+```{r, message=F, warning=F}
+cbind(mean(errors),mean(errors2))
+```
+The (absolute) errors for the second model appear to be lower, but let's take a look at the relative errors:
+
+```{r, message=F, warning=F}
+rerror1 <- abs((predicted-vals)/vals)
+rerror2 <- abs((predicted2-vals2)/vals2)
+cbind(rerror1,rerror2)
+```
+
+As we can see, the relative (percentage) errors for the first model are much, much lower. Thus it's safe to say that the first approach made much less error, and it seems to be a vastly better fit than the second model.
+

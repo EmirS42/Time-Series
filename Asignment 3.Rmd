@@ -1,0 +1,337 @@
+---
+title: "Math 545 - Assignment 3"
+author: "Emir Sevinc 260682995"
+date: "November 11, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=F, warning=F}
+library(itsmr)
+library(forecast)
+```
+
+
+
+# 3.1
+
+Causality will be implied by $\phi(z)=0$ only being solved by roots of absolute value greater than 1, and invertibility will be implied by $\theta(z)=0$ only being solved by roots of absoltue value greater than 1.
+
+
+## a)
+
+$\phi(z) = 1 + 0.2z-0.48z^2=0 \implies z= \frac{-0.2 \pm \sqrt{0.2^2-(4*0.48*1)}}{-2*0.48}=\frac{-0.2 \pm \sqrt{1.96}}{-0.96}$ which is equal to -1.25 or 1.66, both of which are greater in absolute value than 1, thus it is causal.
+$\theta(z)=1$ and this is never 0, so it is invertible.
+
+## b)
+
+$\phi(z) = 1 + 1.9z+0.88z^2=0 \implies z= \frac{-1.9 \pm \sqrt{1.9^2-(4*0.88*1)}}{2*0.88}=\frac{-1.9 \pm \sqrt{0.3}}{1.76}$ which is equal to -0.909 or 01.25, the former being smaller than 1 in absolute value implies the process is not causal.
+$\theta(z)=1 + 0.2z + 0.7z^2=0 \implies z= \frac{-0.2 \pm \sqrt{0.2^2-(4*0.7*1)}}{2*0.7}$ which is -0.1428+1.186i or -0.1428-1.186i, where both absolute values are approximately 1.32 > 1, thus invertible.
+
+## c)
+
+$\phi(z) = 1 + 0.6z=0 \implies |z|=1/0.6=1.66>1$, thus it is causal.
+$\theta(z)=1 + 1.2z \implies |z|=1/1.2=0.83<1$, thus it is not invertible.
+
+## d)
+
+$\phi(z) = 1 + 1.8z+0.81z^2=0 \implies |z|=|\frac{-1.8 \pm \sqrt{1.8^2-(4*0.81)}}{2*0.81}|=|-1.11|=1.11>1$, thus causal.
+$\theta(z)=1$ and this is never 0, so it is invertible.
+
+## e)
+$\phi(z) = 1 + 1.6z=0 \implies |z|=1/1.6=0.625<1$, thus it is not causal.
+$\theta(z)=1 - 0.4z + 0.04z^2=0 \implies z= \frac{0.4 \pm \sqrt{0.4^2-(4*0.04)}}{2*0.04}\implies |z|=5>1$ thus invertible.
+
+
+# 3.5
+
+## a)
+
+Since $Y_t=X_t+W_t$,we have that $E[Y_t]=E[X_t]+E[W_t]=E[X_t]+0$ since $W_t$ is white noise. Since $X_t$ was said to be ARMA, we know it is stationary thus this has no t dependence. 
+Let $E[X_t] = \mu\implies E[Y_t]=\mu\\$.
+$\implies \gamma_{y}(h)=E(Y_{t+h}.Y_t)-\mu^2\\$
+$= E[(X_{t+h}+W_{t+h})(X_t+W_t)]-\mu^2\\$
+$=E(X_{t+h}*X_t)+E(X_{t+h}*W_t)+E(W_{t+h}*X_t)+E(W_{t+h}*W_t)-\mu^2\\$. We know that $X_t$ is ARMA, which is a linear process and a function of $Z_t$, which is uncorrelated with $W_t$, thus we can say that $X_t$ is uncorrelated with $W_t$, and thus:
+$\\ = E(X_{t+h}*X_t)+E(X_{t+h})E(W_t)+E(W_{t+h})E(X_t)+E(W_{t+h})E(W_t)-\mu^2\\$
+$=E(X_{t+h}*X_t)-\mu^2 = \gamma_{x}(h)$. Since $X_t$ is ARMA and stationary, this has no t dependence. In addition;
+$\gamma_y(0) = E(Y_t^2)-\mu^2\\$
+$= E[(X_t+W_t)(X_t+W_t)]-\mu^2\\$
+$=E(X_tX_t)+E(X_t)E(W_t)+E(X_t)E(W_t)+E(W_t^2)-\mu^2\\$
+$=E(X_tX_t)+\sigma_{w}^2-\mu^2\\$
+$=\gamma_{x}(0)+\sigma_{w}^2$, which once again has no t dependence due to the stationarity of $X_t$. Thus we conclude that $Y_t$ is stationary.
+
+The autocorrelation function of Y is thus given by $\gamma_y(h)=\gamma_x(h)$ if h>0, and $\gamma_y(h)=\gamma_x(h)+\sigma_{w}^2$ if h = 0.
+
+## b)
+
+$U_t=\phi(B)Y_t\\$
+$=\phi(B)(X_t+W_t)\\$
+$=\phi(B)X_t+\phi(B)W_t)\\$, but $\phi(B)X_t=\theta(B)Z_t$, so 
+$\\ = \theta(B)Z_t+\phi(B)W_t)$. So
+$\\ U_t = Z_t+\theta_1Z_{t-1}+...+\theta_qZ_{t-q} + W_t - \phi_1W_{t-1}-...-\phi_pW_{t-p}$.
+If  $h\leq r$, then this will have variance terms (the likes of $E(Z_t^2)$) which will give a non-zero autocovariance. However, if $|h| > r$, then there will be no variance term possible and due to the uncorrelation of $W_t$ and $Z_t$, everything will become zero, so we have that $\gamma_u(h) = 0$ if $|h|>r$, thus it is r correlated. Hence we conclude that it is an MA(r) process. 
+What we've effectively showed here, is that $\phi(B)Y_t=U_t=$ some polynomial of coefficients and white noise terms; an MA(r) process. This is the defintion an ARMA(p,r) process (since LHS is AR and RHS is MA by the respective polynomials). So we conclude that $Y_t$ is an ARMA(p,r) process.
+
+
+# 3.9)
+
+## a)
+
+$E[Y_t] = E[Y_{t+h}] = E[\mu + Z_t + \theta_1Z_{t-1} + \theta_{12}Z_{t-12}] = \mu$ as $Z_t$ is WN and has mean 0.
+$\gamma_{y}(h) = E[(\mu + Z_t + \theta_1Z_{t-1} + \theta_{12}Z_{t-12}-\mu)(\mu + Z_{t+h} + \theta_1Z_{t+h-1} + \theta_{12}Z_{t+h-12}-\mu)]\\$
+
+$=E(Z_tZ_{t+h}) + \theta_1E[Z_tZ_{t+h-1}]+\theta_{12}E[Z_tZ_{t+h-12}] + \mu E[Z_t]+ \theta_1E[Z_{t-1}Z_{t+h}]+\theta_1^2E[Z_{t-1}Z_{t+h-1}]+\theta_1\theta_{12}E[Z_{t-1}Z_{t+h-12}]+\theta_{12}E[Z_{t-12}Z_{t+h}]+\theta_{12}\theta_1E[Z_{t-12}Z_{t+h-1}]+\theta_{12}^2E[Z_{t-12}Z_{t+h-12}]\\$
+
+If h = 0, $=E[Z_t^2]+0+0+0+E[\theta_1^2Z_{t-1}^2]+0+0+0+E[\theta_{12}^2Z_{t-12}^2]=$
+$\sigma^2+\theta_1^2\sigma^2+\theta_{12}^2\sigma^2=\sigma^2(1+\theta_1^2+\theta_{12}^2)\\$
+If h = 1, $=0+E[\theta_{1}Z_t^2]+0+0+0+0+0+0=\theta_1\sigma^2\\$
+if h = 11, $=0+0+0+0+0+\theta_1\theta_{12}E[Z_{t-1}^2]=\theta_1\theta_{12}\sigma^2\\$
+if h = 12, $=0+0+\theta_{12}E[Z_t^2]+0+0+0+0+0+0=\theta_{12}\sigma^2\\$.
+
+
+Thus the autovariance funcction:
+$\gamma_y=\\\sigma^2(1+\theta_1^2+\theta_{12}^2)$ if h = 0;
+$\\\theta_1\sigma^2$ if |h| = 1,
+$\\\theta_1\theta_{12}\sigma^2$ if |h|=11,
+$\\\theta_{12}\sigma^2$ if |h|=12.
+$\\ 0$ else.
+
+
+## b)
+
+First we obtain our data.
+
+```{r, message=F, warning=F}
+deaths_ts = ts(deaths, frequency=12, start=c(1973,1))
+deaths_ts
+
+
+```
+Below is the autocorrelation function upto lag 20 of the original series.
+```{r, message=F, warning=F}
+
+ggAcf(deaths_ts,lag=20)
+```
+
+
+Below is the ACF as we apply $\nabla_{12}$
+
+```{r, message=F, warning=F}
+deaths_diff_12 = deaths_ts %>% diff(.,lag=12)
+ggAcf(deaths_diff_12,lag=20)
+```
+
+And we apply $\nabla$ to this:
+
+```{r, message=F, warning=F}
+deaths_diff = deaths_diff_12 %>% diff(.,lag=1)
+ggAcf(deaths_diff,lag=20)
+
+```
+The correlations seems to have calmed down a bit.
+Below is the autocorrelation $\rho(h)$ at different lags upto 20 , in addition to the sample mean of the series.
+
+
+```{r, message=F, warning=F}
+ggacf_saved = ggAcf(deaths_diff,lag=20)
+acf_values = ggacf_saved[["data"]]
+acf_values
+cat("Sample Mean:", mean(deaths_diff), "
+")
+
+
+```
+
+We now take a look at the sample autocovariances upto lag 20:
+
+```{r, message=F, warning=F}
+lag<-0:20
+acvf=acvf(deaths_diff,20)
+cbind(lag,acvf)
+
+```
+
+
+
+## c)
+
+We have $\hat\gamma_x(1)=-54326.528\\$
+$\hat\gamma_x(11)=29801.969\\$
+$\hat\gamma_x(12)=-50866.898\\$
+For $\mu$ we can simply use the mean of the differenced series, thus $\mu = 28.83051$
+
+From part a) we have $\gamma_x(1)=\hat\gamma_x(1) \implies \theta_1\sigma^2= -54326.528\\$
+
+
+$\gamma_x(11)=\hat\gamma_x(11) \implies \theta_1\theta_{12}\sigma^2= 29801.969\\$
+
+$\gamma_x(12)=\hat\gamma_x(12) \implies \theta_{12}\sigma^2= -50866.898\\$
+
+We have 3 equations with 3 unknowns.
+
+Substituting equation 1 into equation 2 gives $-54326.528*\theta_{12}=29801.969\implies \theta_{12}=-0.548571$. Plugging this into equation 3 gives $-0.548571*\sigma^2=-50866.898 \implies \sigma^2 = 92726.2$. Finally, plugging this into equaiton 1 gives $\theta_1*92726.2=-54326.528 \implies \theta_1 = -0.585881$.
+
+Thus in the form of part a), the model would be $X_t=28.83051+Z_t-0.585881Z_{t-1}-0.548571Z_{t-12}$ where $Z_t$  white noise with mean 0 and variance $\sigma^2 = 92726.2$.
+
+
+# 5.3
+
+
+## a)
+The model is given as $X_t-\phi X_{t-1} - \phi^2 X_{t-2} = Z_t$.
+Causality means $\phi(z)=0$ only if $|z|>1$. In this case we have that $\phi(z) = 1 - \phi z - \phi^2 z^2 = 0 \implies z^2 + \frac{z}{\phi} - \frac{1}{\phi^2}=0 \implies \frac{1}{2}[\frac{-1}{\phi}\pm \sqrt{\frac{1+4}{\phi^2}}]=\frac{1}{2}[\frac{-1}{\phi}\pm \frac{\sqrt5}{\phi}]$ thus the solutions are $\frac{-1+\sqrt5}{2\phi}=z_1,\frac{-1-\sqrt5}{2\phi}=z_2\\$
+$|z_1|>1 \implies |\frac{-1+\sqrt5}{2\phi}|>1 \implies \frac{-1+\sqrt5}{2|\phi|}>1$ as $-1+\sqrt5$ is positive, $\implies |\phi|<\frac{-1+\sqrt5}{2} = 0.618\\$
+Also $|z_2|>1 \implies |\frac{-1-\sqrt5}{2\phi}|>1 \implies \frac{|-(1+\sqrt5)|}{2|\phi|}>1 \implies \frac{(1+\sqrt5)}{2|\phi|}>1$ as $1+\sqrt5$ is positive, $\implies |\phi|<\frac{1+\sqrt5}{2} = 1.618$.
+This is already implied by $|\phi|<0.618$ anyway, so we impose $|\phi|<0.618$ as our causality condiiton.
+
+## b)
+
+We are given $\hat\gamma(0)=6.06$ and $\hat\rho(1)=0.687 \implies\hat\gamma(1)=\hat\rho(1)*\hat\gamma(0) =0.687*6.06=4.16322\\$. These will be used later.
+Note that this model is simply an AR model; so $\theta(z)=1$, $\theta_0=1$ and $\theta_j=0$ for any $j \neq 0$.
+In addition, we also had $\phi(z) = 1 - \phi z - \phi^2 z^2$.
+Note also that since this is an AR model it is linear and can be expressed as $X_t=\sum(\psi_jZ_{t-j})$ where $\psi_j=\phi^j$ (we had shown this in class). These will come in handy later.
+
+The Yule-Walker equation provides $\hat\gamma(k)-\phi\hat\gamma(k-1)-\phi^2\hat\gamma(k-2)=\sigma^2\sum_{j=k}^{2}\theta_j\phi^j\\$
+For $k=0$ we have using the fact that $\gamma(h)=\gamma(-h):\\$ $\hat\gamma(0)-\phi\hat\gamma(-1)-\phi^2\hat\gamma(-2)=\hat\gamma(0)-\phi\hat\gamma(1)-\phi^2\hat\gamma(2)=\sigma^2[\theta_0\phi^0+\theta_1\phi^1\theta_2\phi^2]=\sigma^2[1+0+0]=\sigma^2\\$
+$\implies \hat\gamma(0)-\phi\hat\gamma(1)-\phi^2\hat\gamma(2)=\sigma^2 => eq1\\$
+For $k=1$,
+we have $\hat\gamma(1)-\phi\hat\gamma(0)-\phi^2\hat\gamma(1)=\sigma^2[\theta_1\phi^1\theta_2\phi^2]=0\\$
+$\implies \hat\gamma(1)-\phi\hat\gamma(0)-\phi^2\hat\gamma(1) = 0 => eq2\\$
+For $k=2$ we have $\hat\gamma(2)-\phi\hat\gamma(1)-\phi^2\hat\gamma(0) = \sigma^2[\theta_2\phi^2]=0\\$
+$\implies \hat\gamma(2)-\phi\hat\gamma(1)-\phi^2\hat\gamma(0) = 0 => eq3\\$
+
+So now we have 3 equations, and since we have information about $\hat\gamma(0)$ and $\hat\rho(1)$ (and therefore $\hat\gamma(1)$), if we can get rid of $\hat\gamma(2)$ terms, we would be able to solve for wat we need.
+
+
+From eq2 we have $\implies \hat\gamma(1)-\phi\hat\gamma(0)-\phi^2\hat\gamma=0\implies\hat\gamma(1)(1-\phi^2)-\phi \hat\gamma(0) = 0 \implies \hat\gamma(1)(1-\phi^2)= \phi \hat\gamma(0) \implies \frac{\hat\gamma(1)}{\hat\gamma(0)}(1-\phi^2)=\phi \implies \hat\rho(1)(1-\phi^2)=0\\$
+Expanding and solving this; $\hat\rho(1)(1-\phi^2)-\phi=0\\$
+$\hat\rho(1) - \phi^2 \hat\rho(1)-\phi=0\\$
+$\phi^2+\frac{\phi}{\hat\rho(1)}-1=0\\$
+$\phi=\frac{1}{2}[\frac{-1}{\hat\rho(1)}\pm \sqrt{\frac{1}{\hat\rho(1)^2}+4}]\\$
+
+Thus plugging in the known value of $\hat\rho(1)$ we get $\phi=\frac{1}{2}[\frac{-1}{0.687}\pm\sqrt{\frac{1}{0.687^2}+4}]\implies \phi=0.509$ or $\phi=-1.96461\\$
+but $|-1.96461|>|0.618|\\$ so this would make it non-causal (by part a), thus we take $\phi=0.509$
+
+Now we multiply eq3 by $\phi^2$ and add it to eq1 to get $\hat\gamma(0)-\phi\hat\gamma(1)-\phi^2\hat\gamma(2)+ \phi^2\hat\gamma(2)-\phi^3\hat\gamma(1)-\phi^4\hat\gamma(0)=\sigma^2\implies -\phi^3\hat\gamma(1)-\phi\hat\gamma(1)-\phi^4\hat\gamma(0)+\hat\gamma(0)=\sigma^2\\$
+Plugging in our now know value of $\phi$ and $\hat\gamma(1)$ & $\hat\gamma(0)$ we get
+$-0.509^3*4.16322-0.509*4.16322-0.509^4*6.06+6.06=\sigma^2\\ \implies \sigma^2 = 2.98514$.
+
+# 5.4)
+
+## a)
+
+For this we can construct a confidence bound for the autocorrelation $\rho(k)$ and see if it is included. By our usual confidence bounds for autocorrelations, we have $\rho(k)$~$N(0,\frac{1}{n})$ so a 95% confidence interval would be constructed as $\rho(k)=\hat\rho(k)\pm z_{\alpha/2}*\frac{1}{\sqrt{200}}\\$
+$=\hat\rho(k)\pm \frac{1.95}{\sqrt{200}}\\$
+$=\hat\rho(k)\pm 0.137886$.
+Thus using our estimates we get:
+$\\0.427\pm 0.137886\\$
+$0.475\pm 0.137886\\$
+$0.169\pm 0.137886\\$ 0 is not included in any of these; so it's not reasonable to assume that 
+$X_t - \mu$ is white noise.
+
+## b)
+
+We can use our sample mean for the estimate of $\mu$, so we estimate it as 3.82 
+For estimates of $\phi$ we need to solve the following system: $\hat R\hat\phi=\hat \rho(k)$
+where:
+
+\[
+\hat R = \begin{matrix}
+   \hat\rho(0) &  \hat\rho(1) \\
+   \hat\rho(1) &  \hat\rho(0)
+ \end{matrix}
+ \]
+ 
+ $\hat \phi=[\hat \phi_1,\hat \phi_2]$, and $\hat \rho(k)=[\hat \rho(1),\hat \rho(2)]^T$
+Thus we will have $\hat\phi=\hat R^{-1} \hat \rho(k)$. In our case: $\hat \rho(k)=[0.427,0.475]^T$ and
+
+\[
+ \hat R = \begin{matrix}
+   1 &  0.427 \\
+   0.427 &  1
+ \end{matrix}
+ \]
+and
+\[
+ \hat R^{-1} = \begin{matrix}
+   1.22299 &  -0.522215 \\
+   -0.522215 &  1.22299
+ \end{matrix}
+ \]
+
+
+
+
+Thus $\hat\phi=\hat R^{-1} \hat \rho(k)=[0.274163,0.357932]^T\\$
+So our estimates are $\hat \phi(1)=0.274163$, and $\hat \phi(2)=0.357932\\$
+The estimate for $\sigma^2$ will be given by $\hat \sigma^2=\hat \gamma(0)(1-\hat\rho_2^T \hat R_2^{-1}\hat\rho_2)$. We know our $\hat R_2^{-1}$ and $\hat \rho(2)=[0.427,0.475]^T$ and we know that $\hat \gamma(0)=1.15$. $\hat\rho_2^T \hat R_2^{-1}\hat\rho_2$ gives 0.287085, so $\hat\sigma^2=1.15(1-0.287085)=0.81985$
+
+## c)
+
+The sample mean itself already hints this isn't true, but let's take a closer look. We know that a 95% confidence interval for $\mu$ would be given by $\bar X_n \frac{\pm 1.96v^{1/2}}{\sqrt n}$ where $v= \sum \gamma(h)$ for all finite valued h. 
+
+
+
+We can estimate this v by summing all the covariances we can get that is $v\approx \hat\gamma(-3)+\hat\gamma(-2)+\hat\gamma(-1)+\hat\gamma(0)+\hat\gamma(1)+\hat\gamma(2)+\hat\gamma(3)$. We can acquire those values from given values of $\hat\rho(k)$ using the fact that $\hat \gamma(k)=\hat\rho(k)*\hat\gamma(0)$ and $\hat \gamma(k)=\hat \gamma(-k)\\$
+Thus we get $\hat\gamma(3)=\hat\gamma(-3)=0.169*1.15=0.19435\\$
+$\hat\gamma(2)=\hat\gamma(-2)=0.475*1.15=0.54625\\$
+$\hat\gamma(1)=\hat\gamma(-1)=0.427*1.15=0.49105\\$
+Thus $v=2*0.19435+2*0.54625+2*0.49105+1.15=3.6133\\$
+So our confidence interval for $\mu$ is $3.82 \pm\frac{ 1.96*3.6133^{1/2}}{\sqrt {200}}\\$
+$=[3.556553,4.083447]$. Since 0 is not in this interval, we reject the hypothesis that $\mu=0$
+
+##d)
+
+We know that $\phi$~$(\phi,n^{-1}\sigma^2 \Gamma_p^-1)$ where $\Gamma_p$=
+
+\[
+ \Gamma = \begin{matrix}
+   \hat\gamma(0) &  \hat\gamma(1)\\
+   \hat\gamma(1) &  \hat\gamma(0)
+ \end{matrix}
+ =
+  \begin{matrix}
+   1.15 &  0.49105\\
+   0.49105 &  1.15
+ \end{matrix}
+ \]
+ 
+ So we have 
+ \[
+ \Gamma^{-1} = \begin{matrix}
+   1.06347 &  -0.4541\\
+   -0.4541 &  1.06347
+ \end{matrix}
+ \]
+ 
+ And $n^{-1}\sigma^2 \Gamma_p^-1$ using our estimated $\sigma^2$ and n=200 is 
+  \[
+ \begin{matrix}
+   0.00435941 &  -0.00186147\\
+   -0.00186147 &  0.00435941
+ \end{matrix}
+ \]
+ Thus the main diagonal of this will give our variances. That is;
+ $\hat\phi_1$ ~ $N(\phi_1,0.00435941)\\$
+ $\hat\phi_2$ ~ $N(\phi_2,0.00435941)\\$
+ Thus the 95% confidence intervals using our estimates $\hat \phi(1)$ and $\hat \phi(2)$ are given as 
+ $\phi_1=\hat\phi(1)\pm z_{\alpha/2}*\sqrt{var}=0.274163\pm1.96*\sqrt{0.00435941}=[0.144752,0.403574]\\$
+ $\phi_2=\hat\phi(2)\pm z_{\alpha/2}*\sqrt{var}=0.357932\pm 1.96*\sqrt{0.00435941}=[0.228521,0.487343]$
+ 
+## e)
+
+By the definition of PACF, $\alpha(0)=1$ and $\alpha(h)=\phi_{hh}$ where $\phi_{nn}$ is the last element of $\tilde \phi_h = \Gamma_h^{-1} \tilde\gamma_h$. 
+Here we have $\Gamma_1^{-1}=\frac{1}{\hat \gamma(0)}$ and $\gamma_1=\hat \gamma(1)$, thus $\alpha(1)=\frac{1}{\hat \gamma(0)}*\hat\gamma(1)=\hat \rho(1)=0.427\\$ and
+$\alpha(2)$ would be given by the last element of $\Gamma_2^{-1}\hat \gamma_2$.
+\[
+ \Gamma_2^{-1} = \begin{matrix}
+   1.06347 &  -0.4541\\
+   -0.4541 &  1.06347
+ \end{matrix}
+ \]
+ as we found earlier, and $\hat \gamma_2=[\hat \gamma(1),\hat \gamma(2)]^T=[0.49105,0.54625]\\$
+ $\implies \Gamma_2^{-1} \tilde\gamma_2=[0.274165, 0.357935]$, thus $\alpha(2)=0.357935$.
+ 
